@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+
+KVER := <kernel>
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) KVER=$(KVER) modules
+
+override_dh_auto_install:
+	install -d $(CURDIR)/debian/<driver>-modules-<kernel>/usr/lib/modules/$(KVER)/kernel/drivers/net/wireless/
+	install -p -m 644 $(CURDIR)/<module>.ko $(CURDIR)/debian/<driver>-modules-<kernel>/usr/lib/modules/$(KVER)/kernel/drivers/net/wireless/
+
+override_dh_auto_clean:
+	$(MAKE) clean
+	rm -rf $(CURDIR)/debian/<driver>-modules-<kernel>
+

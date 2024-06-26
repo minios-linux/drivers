@@ -1,0 +1,8 @@
+﻿driver;module;version;git
+rtl8723cs;8723cs;0.0;https://github.com/minios-linux/rtl8723cs.git
+rtl88x2bu;88x2bu;5.8.7.1;https://github.com/cilynx/rtl88x2bu.git
+rtl8188eus;8188eu;5.3.9;https://github.com/aircrack-ng/rtl8188eus.git
+rtl8812au;88XXau;5.6.4.2;https://github.com/aircrack-ng/rtl8812au.git
+rtl8814au;8814au;5.8.5.1;https://github.com/morrownr/8814au.git
+rtl8821au;8821au;5.12.5.2;https://github.com/morrownr/8821au-20210708.git
+rtl8821ce;8821ce;5.5.2.1;https://github.com/tomaspinho/rtl8821ce.git
