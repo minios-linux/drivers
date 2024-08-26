@@ -5,13 +5,11 @@ Maintainer: crims0n <crims0n@minios.dev>
 Rules-Requires-Root: no
 Build-Depends: debhelper-compat (= 13), linux-headers-<kernel>, build-essential, bc, xz-utils
 Standards-Version: 4.6.2
-Homepage: http://www.realtek.com.tw 
 
 Package: <driver>-modules-<kernel>
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Suggests: linux-image-<kernel>
 Provides: <driver>-modules
-Description: RealTek <DRIVER> Wireless Driver
- This package installs the <DRIVER> kernel module needed for 
- the RealTek Wireless Network Adapter.
+Description: <DRIVER> Network Driver
+ This package installs the <DRIVER> kernel module needed for the network adapter.

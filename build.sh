@@ -2,56 +2,86 @@
 
 set -e
 
-KERNEL="6.1.90-mos"
-#ARCH="amd64"
+KERNEL="6.1.99-mos"
+ARCH="686"
+MAINTAINER="MiniOS Kernel Team <team@minios.dev>"
 
-# Determine the directory path where this script is located
+META_VERSION=$(echo "$KERNEL" | grep -oP '^\d+\.\d+\.\d+')
+KERNEL_VERSION=$(echo "$KERNEL" | grep -oP '^\d+\.\d+')
+
 BUILD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Path to the file with drivers
 FILE="$BUILD_DIR/drivers.csv"
 
-# Architectures for packages and corresponding architectures of kernels
-declare -A ARCHS
-ARCHS=(["amd64"]="amd64")
+function display_help {
+    echo "Usage: $0 [options]"
+    echo
+    echo "Options:"
+    echo "  -d, --drivers       Build drivers only"
+    echo "  -m, --meta          Build meta-package only"
+    echo "  -h, --help          Display this help message"
+    exit 0
+}
 
-apt -qq update
+BUILD_DRIVERS=true
+BUILD_META=true
 
-# Reading the file line by line, skipping the first header row
-tail -n +2 "$FILE" | while IFS=';' read -r driver module version git; do
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -d|--drivers) BUILD_META=false ;;
+        -m|--meta) BUILD_DRIVERS=false ;;
+        -h|--help) display_help ;;
+        *) echo "Unknown parameter passed: $1"; display_help ;;
+    esac
+    shift
+done
 
-    if [ -d "$BUILD_DIR/$driver" ]; then
-        rm -rf "$BUILD_DIR/$driver"
-    fi
-    # Cloning the repository
-    git clone "$git" "$BUILD_DIR/$driver"
-
-    # Change into the driver directory
-    cd "$BUILD_DIR/$driver" || exit 1
-
-    # Copying the debian folder to the current directory
-    cp -r "$BUILD_DIR/debian" .
-
-    # Executing commands for each architecture
-    for ARCH in "${!ARCHS[@]}"; do
-        KERNEL_ARCH=${ARCHS[$ARCH]}
-
-        # Forming the name of the archive
-        ARCHIVE_NAME="${driver}-modules-${KERNEL}-${KERNEL_ARCH}_${version}.orig.tar.xz"
-
-        if [ -f $ARCHIVE_NAME ]; then
-            rm -f $ARCHIVE_NAME
-        fi
-
-        # Executing a bash command with necessary parameters
-        bash debian/prepare.sh -d "$driver" -m "$module" -v "$version" -k "$KERNEL-$KERNEL_ARCH"
-
+function build_drivers {
+    apt -qq update
+    MODULE_PACKAGES=()
+    tail -n +2 "$FILE" | while IFS=';' read -r driver module version git; do
+        DRIVER_DIR="$BUILD_DIR/$driver"
+        [ -d "$DRIVER_DIR" ] && rm -rf "$DRIVER_DIR"
+        git clone "$git" "$DRIVER_DIR"
+        cd "$DRIVER_DIR" || exit 1
+        cp -r "$BUILD_DIR/debian" .
+        ARCHIVE_NAME="${driver}-modules-${KERNEL}-${ARCH}_${version}.orig.tar.xz"
+        [ -f $ARCHIVE_NAME ] && rm -f $ARCHIVE_NAME
+        bash debian/prepare.sh -d "$driver" -m "$module" -v "$version" -k "$KERNEL-$ARCH"
         apt -y build-dep .
+        BUILD_METHOD=new dpkg-buildpackage -uc -us
+        MODULE_PACKAGES+=("${driver}-modules-${KERNEL}-${ARCH}")
+        cd "$BUILD_DIR"
+    done
+}
 
-        # Building the package
-        dpkg-buildpackage -uc -us
+function build_meta_package {
+    MODULE_PACKAGES=()
+    tail -n +2 "$FILE" | while IFS=';' read -r driver module version git; do
+        MODULE_PACKAGES+=("${driver}-modules-${KERNEL}-${ARCH}")
     done
 
-    # Return to the directory of this script
-    cd "$BUILD_DIR"
-done
+    META_PACKAGE_NAME="linux-modules-${KERNEL_VERSION}-mos-${ARCH}"
+    META_PACKAGE_DIR="$BUILD_DIR/$META_PACKAGE_NAME"
+    mkdir -p "$META_PACKAGE_DIR"
+    cat <<EOL > "$META_PACKAGE_DIR/control"
+Section: misc
+Priority: optional
+Standards-Version: 3.9.2
+
+Package: linux-modules-${KERNEL_VERSION}-mos-${ARCH}
+Version: $META_VERSION
+Maintainer: $MAINTAINER
+Architecture: $ARCH
+Provides: linux-modules
+Depends: $(IFS=,; echo "${MODULE_PACKAGES[*]}")
+Description: Linux Kernel Modules (meta-package)
+ This package installs kernel modules needed for 
+ various hardware components.
+EOL
+    equivs-build "$META_PACKAGE_DIR/control"
+    rm -rf "$META_PACKAGE_DIR"
+    echo "Meta-package $META_PACKAGE_NAME built successfully."
+}
+
+$BUILD_DRIVERS && build_drivers
+$BUILD_META && build_meta_package
