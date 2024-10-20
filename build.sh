@@ -2,8 +2,8 @@
 
 set -e
 
-KERNEL="6.1.99-mos"
-ARCH="686"
+KERNEL="6.1.112-mos"
+ARCH="amd64"
 MAINTAINER="MiniOS Kernel Team <team@minios.dev>"
 
 META_VERSION=$(echo "$KERNEL" | grep -oP '^\d+\.\d+\.\d+')
@@ -56,23 +56,25 @@ function build_drivers {
 
 function build_meta_package {
     MODULE_PACKAGES=()
-    tail -n +2 "$FILE" | while IFS=';' read -r driver module version git; do
+    while IFS=';' read -r driver module version git; do
+        #echo "Read: driver=$driver, module=$module, version=$version, git=$git"
         MODULE_PACKAGES+=("${driver}-modules-${KERNEL}-${ARCH}")
-    done
+    done < <(tail -n +2 "$FILE")
+    
+    #echo "Final MODULE_PACKAGES: ${MODULE_PACKAGES[@]}"
 
-    META_PACKAGE_NAME="linux-modules-${KERNEL_VERSION}-mos-${ARCH}"
+    META_PACKAGE_NAME="prebuilt-linux-modules-${KERNEL_VERSION}-mos-${ARCH}"
     META_PACKAGE_DIR="$BUILD_DIR/$META_PACKAGE_NAME"
     mkdir -p "$META_PACKAGE_DIR"
     cat <<EOL > "$META_PACKAGE_DIR/control"
 Section: misc
 Priority: optional
 Standards-Version: 3.9.2
-
-Package: linux-modules-${KERNEL_VERSION}-mos-${ARCH}
+Package: prebuilt-linux-modules-${KERNEL_VERSION}-mos-${ARCH}
 Version: $META_VERSION
 Maintainer: $MAINTAINER
 Architecture: $ARCH
-Provides: linux-modules
+Provides: prebuilt-linux-modules
 Depends: $(IFS=,; echo "${MODULE_PACKAGES[*]}")
 Description: Linux Kernel Modules (meta-package)
  This package installs kernel modules needed for 
