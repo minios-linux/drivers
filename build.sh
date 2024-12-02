@@ -2,7 +2,7 @@
 
 set -e
 
-KERNEL="6.1.112-mos"
+KERNEL="6.1.119-mos"
 ARCH="amd64"
 MAINTAINER="MiniOS Kernel Team <team@minios.dev>"
 
@@ -60,7 +60,7 @@ function build_meta_package {
         #echo "Read: driver=$driver, module=$module, version=$version, git=$git"
         MODULE_PACKAGES+=("${driver}-modules-${KERNEL}-${ARCH}")
     done < <(tail -n +2 "$FILE")
-    
+
     #echo "Final MODULE_PACKAGES: ${MODULE_PACKAGES[@]}"
 
     META_PACKAGE_NAME="prebuilt-linux-modules-${KERNEL_VERSION}-mos-${ARCH}"
@@ -77,7 +77,7 @@ Architecture: $ARCH
 Provides: prebuilt-linux-modules
 Depends: $(IFS=,; echo "${MODULE_PACKAGES[*]}")
 Description: Linux Kernel Modules (meta-package)
- This package installs kernel modules needed for 
+ This package installs kernel modules needed for
  various hardware components.
 EOL
     equivs-build "$META_PACKAGE_DIR/control"
